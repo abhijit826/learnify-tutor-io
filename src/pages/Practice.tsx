@@ -2,7 +2,7 @@
 import { Navigation } from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Calculator, CheckCircle, HelpCircle } from "lucide-react";
+import { Calculator, CheckCircle, HelpCircle, Brain } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -14,10 +14,12 @@ interface Question {
   question: string;
   options: string[];
   correctAnswer: string;
+  explanation: string;
 }
 
 const Practice = () => {
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
+  const [showExplanation, setShowExplanation] = useState<number | null>(null);
   const { toast } = useToast();
 
   const sampleQuestions: Question[] = [
@@ -27,7 +29,8 @@ const Practice = () => {
       difficulty: "Medium",
       question: "Solve for x: 2x + 5 = 13",
       options: ["x = 3", "x = 4", "x = 5", "x = 6"],
-      correctAnswer: "x = 4"
+      correctAnswer: "x = 4",
+      explanation: "Let's solve this step by step:\n1. Subtract 5 from both sides: 2x = 8\n2. Divide both sides by 2: x = 4\nTherefore, x = 4 is the correct answer."
     },
     {
       id: 2,
@@ -35,11 +38,12 @@ const Practice = () => {
       difficulty: "Easy",
       question: "What is the area of a square with side length 5?",
       options: ["20", "25", "30", "35"],
-      correctAnswer: "25"
+      correctAnswer: "25",
+      explanation: "For a square:\n1. Area = side length × side length\n2. Area = 5 × 5 = 25\nTherefore, the area is 25 square units."
     }
   ];
 
-  const handleAnswerSubmit = (selectedOption: string, correctAnswer: string) => {
+  const handleAnswerSubmit = (selectedOption: string, correctAnswer: string, questionId: number) => {
     setSelectedAnswer(selectedOption);
     if (selectedOption === correctAnswer) {
       toast({
@@ -47,19 +51,18 @@ const Practice = () => {
         description: "Well done! Let's try another question.",
         className: "bg-green-50 text-green-900",
       });
+      setShowExplanation(null);
     } else {
       toast({
         title: "Not quite right",
-        description: "Need help? Try our AI Tutor for a detailed explanation.",
-        action: (
-          <Link to="/ai-tutor">
-            <Button variant="outline" size="sm">
-              Get Help
-            </Button>
-          </Link>
-        ),
+        description: "Click 'Show Explanation' to see a detailed solution.",
+        className: "bg-yellow-50 text-yellow-900",
       });
     }
+  };
+
+  const toggleExplanation = (questionId: number) => {
+    setShowExplanation(showExplanation === questionId ? null : questionId);
   };
 
   return (
@@ -107,7 +110,7 @@ const Practice = () => {
                         ? "bg-red-50 text-red-900 border-red-200"
                         : ""
                     }`}
-                    onClick={() => handleAnswerSubmit(option, q.correctAnswer)}
+                    onClick={() => handleAnswerSubmit(option, q.correctAnswer, q.id)}
                   >
                     {selectedAnswer === option && (
                       <span className="mr-2">
@@ -124,13 +127,28 @@ const Practice = () => {
               </div>
               
               {selectedAnswer && selectedAnswer !== q.correctAnswer && (
-                <div className="mt-4 flex justify-end">
-                  <Link to="/ai-tutor">
-                    <Button variant="outline" size="sm" className="hover-transform">
-                      <HelpCircle className="w-4 h-4 mr-2" />
-                      Get Help
-                    </Button>
-                  </Link>
+                <div className="mt-4">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full hover-transform"
+                    onClick={() => toggleExplanation(q.id)}
+                  >
+                    <Brain className="w-4 h-4 mr-2" />
+                    {showExplanation === q.id ? "Hide Explanation" : "Show Explanation"}
+                  </Button>
+                  
+                  {showExplanation === q.id && (
+                    <Card className="mt-4 p-4 bg-blue-50 border-blue-200">
+                      <h4 className="font-semibold mb-2 flex items-center">
+                        <Brain className="w-4 h-4 mr-2 text-blue-600" />
+                        AI Explanation
+                      </h4>
+                      <p className="text-gray-700 whitespace-pre-line">
+                        {q.explanation}
+                      </p>
+                    </Card>
+                  )}
                 </div>
               )}
             </Card>
