@@ -8,6 +8,8 @@ import Index from "./pages/Index";
 import AITutor from "./pages/AITutor";
 import Practice from "./pages/Practice";
 import Resources from "./pages/Resources";
+import Dashboard from "./pages/Dashboard";
+import Formulas from "./pages/Formulas";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -20,9 +22,11 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/ai-tutor" element={<AITutor />} />
           <Route path="/practice" element={<Practice />} />
           <Route path="/resources" element={<Resources />} />
+          <Route path="/formulas" element={<Formulas />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

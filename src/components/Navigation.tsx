@@ -1,17 +1,18 @@
 
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Calculator, BookOpen, GraduationCap, Brain } from "lucide-react";
+import { Calculator, BookOpen, GraduationCap, Brain, LineChart, Functions } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   const navItems = [
-    { name: "Dashboard", path: "/", icon: <Brain className="w-5 h-5" /> },
+    { name: "Dashboard", path: "/dashboard", icon: <LineChart className="w-5 h-5" /> },
     { name: "Practice", path: "/practice", icon: <Calculator className="w-5 h-5" /> },
     { name: "AI Tutor", path: "/ai-tutor", icon: <GraduationCap className="w-5 h-5" /> },
     { name: "Resources", path: "/resources", icon: <BookOpen className="w-5 h-5" /> },
+    { name: "Formulas", path: "/formulas", icon: <Functions className="w-5 h-5" /> },
   ];
 
   return (
