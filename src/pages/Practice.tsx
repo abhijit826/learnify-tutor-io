@@ -2,9 +2,8 @@
 import { Navigation } from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Calculator, CheckCircle, HelpCircle, Brain } from "lucide-react";
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Calculator, CheckCircle, HelpCircle, Brain, Gamepad2, Trophy } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Question {
@@ -17,41 +16,101 @@ interface Question {
   explanation: string;
 }
 
+interface MathGame {
+  id: number;
+  type: "speed" | "memory";
+  title: string;
+  description: string;
+}
+
 const Practice = () => {
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
   const [showExplanation, setShowExplanation] = useState<number | null>(null);
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const [showGame, setShowGame] = useState(false);
+  const [score, setScore] = useState(0);
   const { toast } = useToast();
 
-  const sampleQuestions: Question[] = [
+  const generateQuestion = (): Question => {
+    const topics = ["Algebra", "Geometry", "Arithmetic"];
+    const difficulties = ["Easy", "Medium", "Hard"] as const;
+    
+    // Generate random numbers for the question
+    const num1 = Math.floor(Math.random() * 10) + 1;
+    const num2 = Math.floor(Math.random() * 10) + 1;
+    
+    const questions = [
+      {
+        topic: "Algebra",
+        difficulty: difficulties[Math.floor(Math.random() * 3)],
+        question: `Solve for x: ${num1}x + ${num2} = ${num1 * 5 + num2}`,
+        options: [`x = ${5 - 1}`, `x = ${5}`, `x = ${5 + 1}`, `x = ${5 + 2}`],
+        correctAnswer: "x = 5",
+        explanation: `Let's solve this step by step:\n1. Subtract ${num2} from both sides: ${num1}x = ${num1 * 5}\n2. Divide both sides by ${num1}: x = 5`
+      },
+      {
+        topic: "Geometry",
+        difficulty: difficulties[Math.floor(Math.random() * 3)],
+        question: `What is the area of a rectangle with width ${num1} and length ${num2}?`,
+        options: [`${num1 * num2 - 1}`, `${num1 * num2}`, `${num1 * num2 + 1}`, `${num1 * num2 + 2}`],
+        correctAnswer: `${num1 * num2}`,
+        explanation: `For a rectangle:\n1. Area = length × width\n2. Area = ${num1} × ${num2} = ${num1 * num2}`
+      },
+      {
+        topic: "Arithmetic",
+        difficulty: difficulties[Math.floor(Math.random() * 3)],
+        question: `What is ${num1} × ${num2}?`,
+        options: [`${num1 * num2 - 1}`, `${num1 * num2}`, `${num1 * num2 + 1}`, `${num1 * num2 + 2}`],
+        correctAnswer: `${num1 * num2}`,
+        explanation: `Let's multiply step by step:\n${num1} × ${num2} = ${num1 * num2}`
+      }
+    ];
+
+    const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
+    return {
+      id: Date.now(),
+      ...randomQuestion
+    };
+  };
+
+  const [currentQuestions, setCurrentQuestions] = useState<Question[]>([
+    generateQuestion(),
+    generateQuestion()
+  ]);
+
+  const games: MathGame[] = [
     {
       id: 1,
-      topic: "Algebra",
-      difficulty: "Medium",
-      question: "Solve for x: 2x + 5 = 13",
-      options: ["x = 3", "x = 4", "x = 5", "x = 6"],
-      correctAnswer: "x = 4",
-      explanation: "Let's solve this step by step:\n1. Subtract 5 from both sides: 2x = 8\n2. Divide both sides by 2: x = 4\nTherefore, x = 4 is the correct answer."
+      type: "speed",
+      title: "Quick Math Challenge",
+      description: "Solve 3 simple math problems in 30 seconds!"
     },
     {
       id: 2,
-      topic: "Geometry",
-      difficulty: "Easy",
-      question: "What is the area of a square with side length 5?",
-      options: ["20", "25", "30", "35"],
-      correctAnswer: "25",
-      explanation: "For a square:\n1. Area = side length × side length\n2. Area = 5 × 5 = 25\nTherefore, the area is 25 square units."
+      type: "memory",
+      title: "Number Memory",
+      description: "Remember and repeat the sequence of numbers"
     }
   ];
 
   const handleAnswerSubmit = (selectedOption: string, correctAnswer: string, questionId: number) => {
     setSelectedAnswer(selectedOption);
     if (selectedOption === correctAnswer) {
+      setScore(score + 1);
       toast({
         title: "Correct!",
         description: "Well done! Let's try another question.",
         className: "bg-green-50 text-green-900",
       });
       setShowExplanation(null);
+      
+      // Show game after every 3 correct answers
+      if ((score + 1) % 3 === 0) {
+        setShowGame(true);
+      } else {
+        // Generate a new question
+        setCurrentQuestions([...currentQuestions, generateQuestion()]);
+      }
     } else {
       toast({
         title: "Not quite right",
@@ -63,6 +122,16 @@ const Practice = () => {
 
   const toggleExplanation = (questionId: number) => {
     setShowExplanation(showExplanation === questionId ? null : questionId);
+  };
+
+  const handleGameComplete = () => {
+    setShowGame(false);
+    setCurrentQuestions([...currentQuestions, generateQuestion()]);
+    toast({
+      title: "Game Complete!",
+      description: "Great job! Back to practice questions.",
+      className: "bg-blue-50 text-blue-900",
+    });
   };
 
   return (
@@ -77,13 +146,35 @@ const Practice = () => {
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
             Test Your Knowledge
           </h1>
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <Trophy className="w-6 h-6 text-yellow-500" />
+            <span className="text-xl font-semibold">Score: {score}</span>
+          </div>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Practice makes perfect! Try these questions and get instant feedback.
           </p>
         </div>
 
+        {showGame ? (
+          <Card className="glass-card p-6 mb-8 text-center">
+            <div className="flex items-center justify-center mb-4">
+              <Gamepad2 className="w-8 h-8 text-purple-500 mr-2" />
+              <h2 className="text-2xl font-bold">Break Time: Mini Game!</h2>
+            </div>
+            <p className="text-lg mb-4">Time for a quick brain teaser!</p>
+            <div className="grid gap-4 md:grid-cols-2">
+              {games.map((game) => (
+                <Card key={game.id} className="p-4 hover:bg-gray-50 cursor-pointer transition-colors" onClick={handleGameComplete}>
+                  <h3 className="text-xl font-semibold mb-2">{game.title}</h3>
+                  <p className="text-gray-600">{game.description}</p>
+                </Card>
+              ))}
+            </div>
+          </Card>
+        ) : null}
+
         <div className="grid gap-8 md:grid-cols-2">
-          {sampleQuestions.map((q) => (
+          {currentQuestions.map((q) => (
             <Card key={q.id} className="glass-card p-6">
               <div className="flex justify-between items-start mb-4">
                 <span className="text-sm font-medium text-gray-600">{q.topic}</span>
