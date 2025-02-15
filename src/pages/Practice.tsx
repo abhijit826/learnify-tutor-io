@@ -107,6 +107,11 @@ const Practice = () => {
       // Show game after every 3 correct answers
       if ((score + 1) % 3 === 0) {
         setShowGame(true);
+        toast({
+          title: "🎮 Game Break!",
+          description: "You've earned a fun break! Choose a mini-game to play.",
+          className: "bg-purple-50 text-purple-900",
+        });
       } else {
         // Generate a new question
         setCurrentQuestions([...currentQuestions, generateQuestion()]);

@@ -4,27 +4,59 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Brain } from "lucide-react";
+import { Brain, Book, Calculator, ChevronRight, Lightbulb } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+interface TutorResponse {
+  explanation: string;
+  examples: string[];
+  practice: string;
+}
 
 const AITutor = () => {
   const [question, setQuestion] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [response, setResponse] = useState<TutorResponse | null>(null);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulated API call - replace with actual AI integration
+    // Simulated AI response - replace with actual AI integration
     setTimeout(() => {
-      toast({
-        title: "Solution Provided",
-        description: "Here's a step-by-step explanation to help you understand.",
-      });
+      const mockResponse: TutorResponse = {
+        explanation: "Here's how to solve this type of problem...",
+        examples: ["Example 1: x + 5 = 10", "Example 2: 2x + 3 = 15"],
+        practice: "Try solving: 3x + 7 = 22"
+      };
+      setResponse(mockResponse);
       setIsLoading(false);
+      toast({
+        title: "Solution Ready!",
+        description: "Here's your personalized explanation.",
+        className: "bg-blue-50 text-blue-900",
+      });
     }, 1500);
   };
+
+  const popularTopics = [
+    {
+      title: "Algebra Basics",
+      description: "Learn fundamental algebraic concepts",
+      icon: <Calculator className="w-6 h-6" />
+    },
+    {
+      title: "Geometry Formulas",
+      description: "Master geometric calculations",
+      icon: <Brain className="w-6 h-6" />
+    },
+    {
+      title: "Calculus Help",
+      description: "Understanding derivatives and integrals",
+      icon: <Book className="w-6 h-6" />
+    }
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -69,23 +101,53 @@ const AITutor = () => {
               )}
             </Button>
           </form>
+
+          {response && (
+            <div className="mt-8 space-y-6 animate-fade-in">
+              <Card className="p-6 bg-blue-50">
+                <h3 className="text-lg font-semibold flex items-center mb-4">
+                  <Lightbulb className="w-5 h-5 mr-2 text-blue-600" />
+                  Explanation
+                </h3>
+                <p className="text-gray-700">{response.explanation}</p>
+              </Card>
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Examples</h3>
+                {response.examples.map((example, index) => (
+                  <Card key={index} className="p-4 bg-gray-50">
+                    <p className="text-gray-700">{example}</p>
+                  </Card>
+                ))}
+              </div>
+
+              <Card className="p-6 bg-green-50">
+                <h3 className="text-lg font-semibold flex items-center mb-4">
+                  <Brain className="w-5 h-5 mr-2 text-green-600" />
+                  Practice Problem
+                </h3>
+                <p className="text-gray-700">{response.practice}</p>
+              </Card>
+            </div>
+          )}
         </Card>
 
-        {/* Sample Questions Section */}
-        <div className="mt-12 text-center">
-          <h2 className="text-2xl font-semibold mb-6">Popular Topics</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {["Algebra", "Geometry", "Calculus"].map((topic) => (
-              <Button
-                key={topic}
-                variant="outline"
-                className="hover-transform"
-                onClick={() => {
-                  setQuestion(`Help me understand ${topic}`);
-                }}
+        <div className="mt-12">
+          <h2 className="text-2xl font-semibold mb-6 text-center">Popular Topics</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {popularTopics.map((topic, index) => (
+              <Card
+                key={index}
+                className="p-6 hover:bg-gray-50 transition-colors cursor-pointer"
+                onClick={() => setQuestion(topic.title)}
               >
-                {topic}
-              </Button>
+                <div className="flex items-center mb-4">
+                  {topic.icon}
+                  <h3 className="text-lg font-semibold ml-3">{topic.title}</h3>
+                </div>
+                <p className="text-gray-600">{topic.description}</p>
+                <ChevronRight className="w-5 h-5 text-gray-400 mt-4 ml-auto" />
+              </Card>
             ))}
           </div>
         </div>

@@ -2,32 +2,86 @@
 import { Navigation } from "@/components/Navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Video, FileText, ExternalLink } from "lucide-react";
+import { BookOpen, Video, FileText, ExternalLink, Star, Play, Download, BookmarkPlus } from "lucide-react";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+
+interface Resource {
+  id: string;
+  title: string;
+  type: string;
+  description: string;
+  icon: JSX.Element;
+  link: string;
+  difficulty: "Beginner" | "Intermediate" | "Advanced";
+  duration?: string;
+  isBookmarked?: boolean;
+}
 
 const Resources = () => {
-  const resources = [
+  const [filter, setFilter] = useState<string>("all");
+  const { toast } = useToast();
+
+  const resources: Resource[] = [
     {
+      id: "1",
       title: "Algebra Fundamentals",
       type: "Video Course",
       description: "Master the basics of algebra with our comprehensive video series",
       icon: <Video className="w-6 h-6" />,
-      link: "#"
+      link: "#",
+      difficulty: "Beginner",
+      duration: "2.5 hours"
     },
     {
+      id: "2",
       title: "Geometry Handbook",
       type: "PDF Guide",
       description: "Complete guide to geometric concepts and problem-solving techniques",
       icon: <FileText className="w-6 h-6" />,
-      link: "#"
+      link: "#",
+      difficulty: "Intermediate"
     },
     {
+      id: "3",
       title: "Calculus Practice Problems",
       type: "Interactive",
       description: "Collection of calculus problems with step-by-step solutions",
       icon: <BookOpen className="w-6 h-6" />,
-      link: "#"
+      link: "#",
+      difficulty: "Advanced"
     }
   ];
+
+  const [bookmarkedResources, setBookmarkedResources] = useState<string[]>([]);
+
+  const handleBookmark = (resourceId: string) => {
+    setBookmarkedResources(prev => {
+      const newBookmarks = prev.includes(resourceId) 
+        ? prev.filter(id => id !== resourceId)
+        : [...prev, resourceId];
+      
+      toast({
+        title: prev.includes(resourceId) ? "Bookmark Removed" : "Bookmark Added",
+        description: prev.includes(resourceId) 
+          ? "Resource removed from your bookmarks"
+          : "Resource added to your bookmarks",
+        className: prev.includes(resourceId) 
+          ? "bg-yellow-50 text-yellow-900"
+          : "bg-green-50 text-green-900",
+      });
+      
+      return newBookmarks;
+    });
+  };
+
+  const filteredResources = filter === "all" 
+    ? resources 
+    : resources.filter(r => 
+        filter === "bookmarked" 
+          ? bookmarkedResources.includes(r.id)
+          : r.difficulty.toLowerCase() === filter
+      );
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -46,14 +100,38 @@ const Resources = () => {
           </p>
         </div>
 
+        <div className="flex justify-center gap-4 mb-8">
+          {["all", "bookmarked", "beginner", "intermediate", "advanced"].map((f) => (
+            <Button
+              key={f}
+              variant={filter === f ? "default" : "outline"}
+              onClick={() => setFilter(f)}
+              className="capitalize"
+            >
+              {f === "bookmarked" && <Star className="w-4 h-4 mr-2" />}
+              {f}
+            </Button>
+          ))}
+        </div>
+
         <div className="grid gap-8 md:grid-cols-3">
-          {resources.map((resource, index) => (
-            <Card key={index} className="glass-card p-6 hover-transform">
-              <div className="flex items-center mb-4 text-gray-700">
-                {resource.icon}
-                <span className="ml-2 text-sm font-medium text-gray-500">
-                  {resource.type}
-                </span>
+          {filteredResources.map((resource) => (
+            <Card key={resource.id} className="glass-card p-6 hover-transform">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center text-gray-700">
+                  {resource.icon}
+                  <span className="ml-2 text-sm font-medium text-gray-500">
+                    {resource.type}
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleBookmark(resource.id)}
+                  className={bookmarkedResources.includes(resource.id) ? "text-yellow-500" : ""}
+                >
+                  <BookmarkPlus className="w-5 h-5" />
+                </Button>
               </div>
               
               <h3 className="text-xl font-semibold mb-2">
@@ -63,29 +141,33 @@ const Resources = () => {
               <p className="text-gray-600 mb-4">
                 {resource.description}
               </p>
+
+              <div className="flex items-center justify-between mt-4">
+                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                  resource.difficulty === "Beginner" ? "bg-green-100 text-green-800" :
+                  resource.difficulty === "Intermediate" ? "bg-yellow-100 text-yellow-800" :
+                  "bg-red-100 text-red-800"
+                }`}>
+                  {resource.difficulty}
+                </span>
+                {resource.duration && (
+                  <span className="text-sm text-gray-500 flex items-center">
+                    <Play className="w-4 h-4 mr-1" />
+                    {resource.duration}
+                  </span>
+                )}
+              </div>
               
-              <Button className="w-full" variant="outline">
-                Access Resource
-                <ExternalLink className="w-4 h-4 ml-2" />
+              <Button className="w-full mt-4" variant="outline">
+                {resource.type === "PDF Guide" ? "Download" : "Access"} Resource
+                {resource.type === "PDF Guide" ? (
+                  <Download className="w-4 h-4 ml-2" />
+                ) : (
+                  <ExternalLink className="w-4 h-4 ml-2" />
+                )}
               </Button>
             </Card>
           ))}
-        </div>
-
-        {/* Quick Links Section */}
-        <div className="mt-16">
-          <h2 className="text-2xl font-semibold mb-6 text-center">Quick Links</h2>
-          <div className="grid gap-4 md:grid-cols-4">
-            {["Textbooks", "Video Lectures", "Practice Tests", "Formula Sheets"].map((link) => (
-              <Button
-                key={link}
-                variant="outline"
-                className="hover-transform"
-              >
-                {link}
-              </Button>
-            ))}
-          </div>
         </div>
       </div>
     </div>
