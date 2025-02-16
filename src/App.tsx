@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { FloatingCalculator } from "./components/FloatingCalculator";
 import Index from "./pages/Index";
 import AITutor from "./pages/AITutor";
 import Practice from "./pages/Practice";
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/formulas" element={<Formulas />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <FloatingCalculator />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
