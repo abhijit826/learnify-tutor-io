@@ -3,6 +3,7 @@ import { Navigation } from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Brain, Calculator, ChartLine } from "lucide-react";
 import { Link } from "react-router-dom";
+import { FacialEmotionAnalyzer } from "@/components/FacialEmotionAnalyzer";
 
 const Index = () => {
   const features = [
@@ -71,6 +72,19 @@ const Index = () => {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Facial Expression Analysis Section */}
+      <div className="max-w-7xl mx-auto px-4 py-16">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+            Emotional Learning Assistant
+          </h2>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Our AI analyzes your facial expressions to help understand your emotional engagement with the learning material.
+          </p>
+        </div>
+        <FacialEmotionAnalyzer />
       </div>
     </div>
   );
