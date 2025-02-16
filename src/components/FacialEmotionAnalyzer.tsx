@@ -82,11 +82,8 @@ export const FacialEmotionAnalyzer = () => {
         const predictions = await model.estimateFaces(video);
 
         if (predictions.length > 0) {
-          // Simplified emotion detection based on face landmarks
           const landmarks = predictions[0].keypoints;
           
-          // Basic emotion detection logic (simplified for example)
-          // Using different keypoints for the updated API
           const mouthTop = landmarks.find(point => point.name === "lips_upper_center");
           const mouthBottom = landmarks.find(point => point.name === "lips_lower_center");
           const leftEyebrow = landmarks.find(point => point.name === "left_eyebrow_outer");
