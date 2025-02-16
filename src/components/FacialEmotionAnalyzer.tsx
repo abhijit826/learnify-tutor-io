@@ -59,8 +59,8 @@ export const FacialEmotionAnalyzer = () => {
     setIsLoading(true);
     try {
       await tf.ready();
-      const model = await faceLandmarksDetection.load(
-        faceLandmarksDetection.SupportedPackages.mediapipeFacemesh
+      const model = await faceLandmarksDetection.createDetector(
+        faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh
       );
       setIsActive(true);
       runFacialAnalysis(model);
@@ -75,32 +75,40 @@ export const FacialEmotionAnalyzer = () => {
     setIsLoading(false);
   };
 
-  const runFacialAnalysis = async (model: any) => {
+  const runFacialAnalysis = async (model: faceLandmarksDetection.FaceLandmarksDetector) => {
     const detectFace = async () => {
       if (webcamRef.current && webcamRef.current.video && isActive) {
         const video = webcamRef.current.video;
-        const face = await model.estimateFaces({
-          input: video,
-          predictIrises: false
-        });
+        const predictions = await model.estimateFaces(video);
 
-        if (face.length > 0) {
+        if (predictions.length > 0) {
           // Simplified emotion detection based on face landmarks
-          const landmarks = face[0].scaledMesh;
+          const landmarks = predictions[0].keypoints;
           
           // Basic emotion detection logic (simplified for example)
-          const mouthWidth = calculateDistance(landmarks[308], landmarks[78]);
-          const eyebrowHeight = calculateDistance(landmarks[223], landmarks[443]);
-          
+          // Using different keypoints for the updated API
+          const mouthTop = landmarks.find(point => point.name === "lips_upper_center");
+          const mouthBottom = landmarks.find(point => point.name === "lips_lower_center");
+          const leftEyebrow = landmarks.find(point => point.name === "left_eyebrow_outer");
+          const rightEyebrow = landmarks.find(point => point.name === "right_eyebrow_outer");
+
           let detectedEmotion = "neutral";
           let confidence = 0.7;
 
-          if (mouthWidth > 0.4) {
-            detectedEmotion = "happy";
-            confidence = 0.85;
-          } else if (eyebrowHeight < 0.2) {
-            detectedEmotion = "sad";
-            confidence = 0.75;
+          if (mouthTop && mouthBottom) {
+            const mouthHeight = Math.abs(mouthTop.y - mouthBottom.y);
+            if (mouthHeight > 10) {
+              detectedEmotion = "happy";
+              confidence = 0.85;
+            }
+          }
+
+          if (leftEyebrow && rightEyebrow) {
+            const eyebrowHeight = (leftEyebrow.y + rightEyebrow.y) / 2;
+            if (eyebrowHeight < 50) {
+              detectedEmotion = "sad";
+              confidence = 0.75;
+            }
           }
 
           setEmotion({
@@ -116,13 +124,6 @@ export const FacialEmotionAnalyzer = () => {
     };
 
     detectFace();
-  };
-
-  const calculateDistance = (point1: number[], point2: number[]) => {
-    return Math.sqrt(
-      Math.pow(point2[0] - point1[0], 2) +
-      Math.pow(point2[1] - point1[1], 2)
-    );
   };
 
   const stopAnalysis = () => {
