@@ -103,7 +103,14 @@ const Dashboard = () => {
                     <XAxis dataKey="date" />
                     <YAxis />
                     <Tooltip />
-                    <Line type="monotone" dataKey="score" stroke="#8884d8" />
+                    <Line 
+                      type="monotone" 
+                      dataKey="score" 
+                      stroke="#8884d8"
+                      strokeWidth={2}
+                      dot={{ fill: '#8884d8' }}
+                      activeDot={{ r: 8 }}
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               </Card>
@@ -111,17 +118,17 @@ const Dashboard = () => {
               <Card className="glass-card p-6">
                 <h3 className="text-xl font-semibold mb-4">Quick Stats</h3>
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
                     <span>Problems Solved</span>
-                    <span className="font-semibold">124</span>
+                    <span className="font-semibold text-purple-600">124</span>
                   </div>
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
                     <span>Study Time</span>
-                    <span className="font-semibold">14.5 hrs</span>
+                    <span className="font-semibold text-blue-600">14.5 hrs</span>
                   </div>
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
                     <span>Current Streak</span>
-                    <span className="font-semibold">7 days</span>
+                    <span className="font-semibold text-green-600">7 days</span>
                   </div>
                 </div>
               </Card>

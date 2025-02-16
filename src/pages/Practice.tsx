@@ -13,12 +13,8 @@ const Practice = () => {
   const [showExplanation, setShowExplanation] = useState<number | null>(null);
   const [showGame, setShowGame] = useState(false);
   const [score, setScore] = useState(0);
+  const [currentQuestion, setCurrentQuestion] = useState<Question>(generateQuestion());
   const { toast } = useToast();
-
-  const [currentQuestions, setCurrentQuestions] = useState<Question[]>([
-    generateQuestion(),
-    generateQuestion()
-  ]);
 
   const games: MathGame[] = [
     {
@@ -54,7 +50,9 @@ const Practice = () => {
           className: "bg-purple-50 text-purple-900",
         });
       } else {
-        setCurrentQuestions([...currentQuestions, generateQuestion()]);
+        // Generate next question
+        setCurrentQuestion(generateQuestion());
+        setSelectedAnswer("");
       }
     } else {
       toast({
@@ -67,7 +65,8 @@ const Practice = () => {
 
   const handleGameComplete = () => {
     setShowGame(false);
-    setCurrentQuestions([...currentQuestions, generateQuestion()]);
+    setCurrentQuestion(generateQuestion());
+    setSelectedAnswer("");
     toast({
       title: "Game Complete!",
       description: "Great job! Back to practice questions.",
@@ -96,25 +95,22 @@ const Practice = () => {
           </p>
         </div>
 
-        {showGame && (
+        {showGame ? (
           <GameBreak 
             games={games}
             onGameComplete={handleGameComplete}
           />
-        )}
-
-        <div className="grid gap-8 md:grid-cols-2">
-          {currentQuestions.map((question) => (
+        ) : (
+          <div className="max-w-2xl mx-auto">
             <QuestionCard
-              key={question.id}
-              question={question}
+              question={currentQuestion}
               selectedAnswer={selectedAnswer}
               onAnswerSubmit={handleAnswerSubmit}
               showExplanation={showExplanation}
               onToggleExplanation={(id) => setShowExplanation(showExplanation === id ? null : id)}
             />
-          ))}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
