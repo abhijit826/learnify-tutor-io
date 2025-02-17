@@ -30,7 +30,12 @@ export const useFaceDetection = (onEmotionDetected?: (emotion: EmotionData) => v
     try {
       await tf.ready();
       const model = await faceLandmarksDetection.createDetector(
-        faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh
+        faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh,
+        {
+          runtime: 'tfjs', // Specify the runtime
+          refineLandmarks: true,
+          maxFaces: 1
+        }
       );
       setState(prev => ({ ...prev, isActive: true }));
       runFacialAnalysis(model);
