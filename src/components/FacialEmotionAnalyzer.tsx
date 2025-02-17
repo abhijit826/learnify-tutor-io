@@ -5,16 +5,10 @@ import * as tf from '@tensorflow/tfjs';
 import * as faceLandmarksDetection from '@tensorflow-models/face-landmarks-detection';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Camera, CameraOff, Loader2, Brain } from "lucide-react";
+import { Camera, CameraOff, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Progress } from "@/components/ui/progress";
-
-interface EmotionData {
-  emotion: string;
-  confidence: number;
-  description: string;
-  color: string;
-}
+import { EmotionData, emotionDescriptions, calculateAttention, detectEmotion } from "@/utils/emotionUtils";
+import { AttentionIndicator } from "./practice/AttentionIndicator";
 
 interface AttentionReport {
   startTime: Date;
@@ -25,13 +19,15 @@ interface AttentionReport {
   distractedMinutes: number;
 }
 
-export const FacialEmotionAnalyzer = ({ 
-  isSessionActive = false,
-  onReportGenerated = (report: AttentionReport) => {} 
-}: { 
+interface FacialEmotionAnalyzerProps {
   isSessionActive?: boolean;
   onReportGenerated?: (report: AttentionReport) => void;
-}) => {
+}
+
+export const FacialEmotionAnalyzer = ({ 
+  isSessionActive = false,
+  onReportGenerated = () => {} 
+}: FacialEmotionAnalyzerProps) => {
   const webcamRef = useRef<Webcam>(null);
   const [isActive, setIsActive] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -40,33 +36,6 @@ export const FacialEmotionAnalyzer = ({
   const [emotionHistory, setEmotionHistory] = useState<EmotionData[]>([]);
   const [attentionScore, setAttentionScore] = useState(0);
   const { toast } = useToast();
-
-  const emotionDescriptions: Record<string, EmotionData> = {
-    attentive: {
-      emotion: "Attentive",
-      confidence: 0,
-      description: "You appear to be focused and engaged with the content.",
-      color: "bg-green-500"
-    },
-    distracted: {
-      emotion: "Distracted",
-      confidence: 0,
-      description: "You seem to be losing focus. Try to concentrate more.",
-      color: "bg-yellow-500"
-    },
-    tired: {
-      emotion: "Tired",
-      confidence: 0,
-      description: "You're showing signs of fatigue. Consider taking a short break.",
-      color: "bg-red-500"
-    },
-    neutral: {
-      emotion: "Neutral",
-      confidence: 0,
-      description: "Your expression appears calm and balanced.",
-      color: "bg-gray-500"
-    }
-  };
 
   useEffect(() => {
     if (isSessionActive && !isActive) {
@@ -126,21 +95,6 @@ export const FacialEmotionAnalyzer = ({
     setIsLoading(false);
   };
 
-  const calculateAttention = (landmarks: any[]) => {
-    const eyesClosed = landmarks.some(point => 
-      point.name?.includes('eye') && point.y < 0.3
-    );
-    const headTilted = landmarks.some(point =>
-      point.name?.includes('nose') && Math.abs(point.x - 0.5) > 0.2
-    );
-    
-    let attention = 1.0;
-    if (eyesClosed) attention -= 0.3;
-    if (headTilted) attention -= 0.3;
-    
-    return Math.max(0, attention);
-  };
-
   const runFacialAnalysis = async (model: faceLandmarksDetection.FaceLandmarksDetector) => {
     const detectFace = async () => {
       if (webcamRef.current && webcamRef.current.video && isActive) {
@@ -152,17 +106,7 @@ export const FacialEmotionAnalyzer = ({
           const attention = calculateAttention(landmarks);
           setAttentionScore(attention);
 
-          let detectedEmotion = "neutral";
-          let confidence = 0.7;
-
-          if (attention > 0.8) {
-            detectedEmotion = "attentive";
-            confidence = 0.9;
-          } else if (attention < 0.4) {
-            detectedEmotion = "distracted";
-            confidence = 0.8;
-          }
-
+          const { emotion: detectedEmotion, confidence } = detectEmotion(attention);
           const currentEmotion = {
             ...emotionDescriptions[detectedEmotion],
             confidence
@@ -237,23 +181,7 @@ export const FacialEmotionAnalyzer = ({
         </div>
 
         {emotion && (
-          <div className="mt-4 space-y-2">
-            <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${emotion.color}`} />
-              <span className="text-lg font-semibold">{emotion.emotion}</span>
-              <span className="text-sm text-gray-500">
-                ({Math.round(emotion.confidence * 100)}% confidence)
-              </span>
-            </div>
-            <p className="text-gray-600">{emotion.description}</p>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Attention Level</span>
-                <span>{Math.round(attentionScore * 100)}%</span>
-              </div>
-              <Progress value={attentionScore * 100} className="h-2" />
-            </div>
-          </div>
+          <AttentionIndicator emotion={emotion} attentionScore={attentionScore} />
         )}
       </div>
     </Card>
