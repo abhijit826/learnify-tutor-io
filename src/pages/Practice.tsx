@@ -1,12 +1,13 @@
-
 import { Navigation } from "@/components/Navigation";
-import { Trophy } from "lucide-react";
+import { Trophy, Brain } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Question, MathGame } from "@/types/practice";
 import { QuestionCard } from "@/components/practice/QuestionCard";
 import { GameBreak } from "@/components/practice/GameBreak";
 import { generateQuestion } from "@/utils/questionGenerator";
+import { FacialEmotionAnalyzer } from "@/components/FacialEmotionAnalyzer";
+import { Card } from "@/components/ui/card";
 
 const Practice = () => {
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
@@ -14,6 +15,8 @@ const Practice = () => {
   const [showGame, setShowGame] = useState(false);
   const [score, setScore] = useState(0);
   const [currentQuestion, setCurrentQuestion] = useState<Question>(generateQuestion());
+  const [isSessionActive, setIsSessionActive] = useState(false);
+  const [attentionReport, setAttentionReport] = useState<any>(null);
   const { toast } = useToast();
 
   const games: MathGame[] = [
@@ -44,13 +47,13 @@ const Practice = () => {
       
       if ((score + 1) % 3 === 0) {
         setShowGame(true);
+        setIsSessionActive(false);
         toast({
           title: "🎮 Game Break!",
           description: "You've earned a fun break! Choose a mini-game to play.",
           className: "bg-purple-50 text-purple-900",
         });
       } else {
-        // Generate next question
         setCurrentQuestion(generateQuestion());
         setSelectedAnswer("");
       }
@@ -67,10 +70,25 @@ const Practice = () => {
     setShowGame(false);
     setCurrentQuestion(generateQuestion());
     setSelectedAnswer("");
+    setIsSessionActive(true);
     toast({
       title: "Game Complete!",
       description: "Great job! Back to practice questions.",
       className: "bg-blue-50 text-blue-900",
+    });
+  };
+
+  const handleSessionStart = () => {
+    setIsSessionActive(true);
+    setAttentionReport(null);
+  };
+
+  const handleReportGenerated = (report: any) => {
+    setAttentionReport(report);
+    toast({
+      title: "Session Complete!",
+      description: "Your attention report is ready to view.",
+      className: "bg-green-50 text-green-900",
     });
   };
 
@@ -93,7 +111,51 @@ const Practice = () => {
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Practice makes perfect! Try these questions and get instant feedback.
           </p>
+          {!isSessionActive && !showGame && (
+            <Button
+              onClick={handleSessionStart}
+              className="mt-4"
+            >
+              <Brain className="w-4 h-4 mr-2" />
+              Start Practice Session
+            </Button>
+          )}
         </div>
+
+        {isSessionActive && (
+          <FacialEmotionAnalyzer 
+            isSessionActive={isSessionActive} 
+            onReportGenerated={handleReportGenerated}
+          />
+        )}
+
+        {attentionReport && (
+          <Card className="max-w-2xl mx-auto mb-8 p-6">
+            <h3 className="text-xl font-bold mb-4">Session Report</h3>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-500">Session Duration</p>
+                  <p className="font-medium">
+                    {Math.round((attentionReport.endTime - attentionReport.startTime) / 60000)} minutes
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Average Attention</p>
+                  <p className="font-medium">{Math.round(attentionReport.averageAttention)}%</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Attentive Time</p>
+                  <p className="font-medium">{Math.round(attentionReport.attentiveMinutes)} minutes</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Distracted Time</p>
+                  <p className="font-medium">{Math.round(attentionReport.distractedMinutes)} minutes</p>
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {showGame ? (
           <GameBreak 

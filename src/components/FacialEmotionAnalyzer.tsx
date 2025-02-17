@@ -5,8 +5,9 @@ import * as tf from '@tensorflow/tfjs';
 import * as faceLandmarksDetection from '@tensorflow-models/face-landmarks-detection';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Camera, CameraOff, Loader2 } from "lucide-react";
+import { Camera, CameraOff, Loader2, Brain } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Progress } from "@/components/ui/progress";
 
 interface EmotionData {
   emotion: string;
@@ -15,37 +16,49 @@ interface EmotionData {
   color: string;
 }
 
-export const FacialEmotionAnalyzer = () => {
+interface AttentionReport {
+  startTime: Date;
+  endTime: Date;
+  averageAttention: number;
+  emotionBreakdown: Record<string, number>;
+  attentiveMinutes: number;
+  distractedMinutes: number;
+}
+
+export const FacialEmotionAnalyzer = ({ 
+  isSessionActive = false,
+  onReportGenerated = (report: AttentionReport) => {} 
+}: { 
+  isSessionActive?: boolean;
+  onReportGenerated?: (report: AttentionReport) => void;
+}) => {
   const webcamRef = useRef<Webcam>(null);
   const [isActive, setIsActive] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [emotion, setEmotion] = useState<EmotionData | null>(null);
+  const [sessionStart, setSessionStart] = useState<Date | null>(null);
+  const [emotionHistory, setEmotionHistory] = useState<EmotionData[]>([]);
+  const [attentionScore, setAttentionScore] = useState(0);
   const { toast } = useToast();
 
   const emotionDescriptions: Record<string, EmotionData> = {
-    happy: {
-      emotion: "Happy",
+    attentive: {
+      emotion: "Attentive",
       confidence: 0,
-      description: "You appear to be in a positive mood, showing signs of joy and contentment.",
+      description: "You appear to be focused and engaged with the content.",
       color: "bg-green-500"
     },
-    sad: {
-      emotion: "Sad",
+    distracted: {
+      emotion: "Distracted",
       confidence: 0,
-      description: "Your expression suggests feelings of sadness or disappointment.",
-      color: "bg-blue-500"
+      description: "You seem to be losing focus. Try to concentrate more.",
+      color: "bg-yellow-500"
     },
-    angry: {
-      emotion: "Angry",
+    tired: {
+      emotion: "Tired",
       confidence: 0,
-      description: "Your facial features indicate frustration or anger.",
+      description: "You're showing signs of fatigue. Consider taking a short break.",
       color: "bg-red-500"
-    },
-    surprised: {
-      emotion: "Surprised",
-      confidence: 0,
-      description: "Your expression shows astonishment or unexpected reaction.",
-      color: "bg-purple-500"
     },
     neutral: {
       emotion: "Neutral",
@@ -53,6 +66,44 @@ export const FacialEmotionAnalyzer = () => {
       description: "Your expression appears calm and balanced.",
       color: "bg-gray-500"
     }
+  };
+
+  useEffect(() => {
+    if (isSessionActive && !isActive) {
+      startAnalysis();
+      setSessionStart(new Date());
+    } else if (!isSessionActive && isActive) {
+      stopAnalysis();
+      generateReport();
+    }
+  }, [isSessionActive]);
+
+  const generateReport = () => {
+    if (!sessionStart) return;
+
+    const endTime = new Date();
+    const totalMinutes = (endTime.getTime() - sessionStart.getTime()) / 60000;
+    
+    const emotionCounts = emotionHistory.reduce((acc, emotion) => {
+      acc[emotion.emotion] = (acc[emotion.emotion] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const attentiveCount = emotionCounts["Attentive"] || 0;
+    const averageAttention = (attentiveCount / emotionHistory.length) * 100;
+    
+    const report: AttentionReport = {
+      startTime: sessionStart,
+      endTime,
+      averageAttention,
+      emotionBreakdown: emotionCounts,
+      attentiveMinutes: (attentiveCount / emotionHistory.length) * totalMinutes,
+      distractedMinutes: totalMinutes - ((attentiveCount / emotionHistory.length) * totalMinutes)
+    };
+
+    onReportGenerated(report);
+    setEmotionHistory([]);
+    setSessionStart(null);
   };
 
   const startAnalysis = async () => {
@@ -75,6 +126,21 @@ export const FacialEmotionAnalyzer = () => {
     setIsLoading(false);
   };
 
+  const calculateAttention = (landmarks: any[]) => {
+    const eyesClosed = landmarks.some(point => 
+      point.name?.includes('eye') && point.y < 0.3
+    );
+    const headTilted = landmarks.some(point =>
+      point.name?.includes('nose') && Math.abs(point.x - 0.5) > 0.2
+    );
+    
+    let attention = 1.0;
+    if (eyesClosed) attention -= 0.3;
+    if (headTilted) attention -= 0.3;
+    
+    return Math.max(0, attention);
+  };
+
   const runFacialAnalysis = async (model: faceLandmarksDetection.FaceLandmarksDetector) => {
     const detectFace = async () => {
       if (webcamRef.current && webcamRef.current.video && isActive) {
@@ -83,35 +149,27 @@ export const FacialEmotionAnalyzer = () => {
 
         if (predictions.length > 0) {
           const landmarks = predictions[0].keypoints;
-          
-          const mouthTop = landmarks.find(point => point.name === "lips_upper_center");
-          const mouthBottom = landmarks.find(point => point.name === "lips_lower_center");
-          const leftEyebrow = landmarks.find(point => point.name === "left_eyebrow_outer");
-          const rightEyebrow = landmarks.find(point => point.name === "right_eyebrow_outer");
+          const attention = calculateAttention(landmarks);
+          setAttentionScore(attention);
 
           let detectedEmotion = "neutral";
           let confidence = 0.7;
 
-          if (mouthTop && mouthBottom) {
-            const mouthHeight = Math.abs(mouthTop.y - mouthBottom.y);
-            if (mouthHeight > 10) {
-              detectedEmotion = "happy";
-              confidence = 0.85;
-            }
+          if (attention > 0.8) {
+            detectedEmotion = "attentive";
+            confidence = 0.9;
+          } else if (attention < 0.4) {
+            detectedEmotion = "distracted";
+            confidence = 0.8;
           }
 
-          if (leftEyebrow && rightEyebrow) {
-            const eyebrowHeight = (leftEyebrow.y + rightEyebrow.y) / 2;
-            if (eyebrowHeight < 50) {
-              detectedEmotion = "sad";
-              confidence = 0.75;
-            }
-          }
-
-          setEmotion({
+          const currentEmotion = {
             ...emotionDescriptions[detectedEmotion],
             confidence
-          });
+          };
+
+          setEmotion(currentEmotion);
+          setEmotionHistory(prev => [...prev, currentEmotion]);
         }
 
         if (isActive) {
@@ -132,26 +190,35 @@ export const FacialEmotionAnalyzer = () => {
     <Card className="p-6 max-w-xl mx-auto mt-8 bg-white/90 backdrop-blur-sm">
       <div className="space-y-4">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold">Facial Expression Analysis</h2>
-          <Button
-            onClick={isActive ? stopAnalysis : startAnalysis}
-            disabled={isLoading}
-            variant={isActive ? "destructive" : "default"}
-          >
-            {isLoading ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : isActive ? (
-              <>
-                <CameraOff className="w-4 h-4 mr-2" />
-                Stop
-              </>
-            ) : (
-              <>
-                <Camera className="w-4 h-4 mr-2" />
-                Start
-              </>
+          <div>
+            <h2 className="text-2xl font-bold">Attention Tracking</h2>
+            {sessionStart && (
+              <p className="text-sm text-gray-500">
+                Session started at: {sessionStart.toLocaleTimeString()}
+              </p>
             )}
-          </Button>
+          </div>
+          {!isSessionActive && (
+            <Button
+              onClick={isActive ? stopAnalysis : startAnalysis}
+              disabled={isLoading}
+              variant={isActive ? "destructive" : "default"}
+            >
+              {isLoading ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : isActive ? (
+                <>
+                  <CameraOff className="w-4 h-4 mr-2" />
+                  Stop
+                </>
+              ) : (
+                <>
+                  <Camera className="w-4 h-4 mr-2" />
+                  Start
+                </>
+              )}
+            </Button>
+          )}
         </div>
 
         <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden">
@@ -179,6 +246,13 @@ export const FacialEmotionAnalyzer = () => {
               </span>
             </div>
             <p className="text-gray-600">{emotion.description}</p>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Attention Level</span>
+                <span>{Math.round(attentionScore * 100)}%</span>
+              </div>
+              <Progress value={attentionScore * 100} className="h-2" />
+            </div>
           </div>
         )}
       </div>
