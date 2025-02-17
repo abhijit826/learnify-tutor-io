@@ -8,6 +8,7 @@ import { GameBreak } from "@/components/practice/GameBreak";
 import { generateQuestion } from "@/utils/questionGenerator";
 import { FacialEmotionAnalyzer } from "@/components/FacialEmotionAnalyzer";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 const Practice = () => {
   const [selectedAnswer, setSelectedAnswer] = useState<string>("");
