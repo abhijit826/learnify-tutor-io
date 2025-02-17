@@ -1,14 +1,12 @@
 
-import { useEffect, useRef, useState } from "react";
-import Webcam from "react-webcam";
-import * as tf from '@tensorflow/tfjs';
-import * as faceLandmarksDetection from '@tensorflow-models/face-landmarks-detection';
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Camera, CameraOff, Loader2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { EmotionData, emotionDescriptions, calculateAttention, detectEmotion } from "@/utils/emotionUtils";
+import { EmotionData } from "@/utils/emotionUtils";
 import { AttentionIndicator } from "./practice/AttentionIndicator";
+import { WebcamView } from "./webcam/WebcamView";
+import { useFaceDetection } from "@/hooks/useFaceDetection";
 
 interface AttentionReport {
   startTime: Date;
@@ -28,14 +26,18 @@ export const FacialEmotionAnalyzer = ({
   isSessionActive = false,
   onReportGenerated = () => {} 
 }: FacialEmotionAnalyzerProps) => {
-  const webcamRef = useRef<Webcam>(null);
-  const [isActive, setIsActive] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [emotion, setEmotion] = useState<EmotionData | null>(null);
   const [sessionStart, setSessionStart] = useState<Date | null>(null);
-  const [emotionHistory, setEmotionHistory] = useState<EmotionData[]>([]);
-  const [attentionScore, setAttentionScore] = useState(0);
-  const { toast } = useToast();
+  
+  const {
+    webcamRef,
+    isActive,
+    isLoading,
+    emotion,
+    attentionScore,
+    emotionHistory,
+    startAnalysis,
+    stopAnalysis,
+  } = useFaceDetection();
 
   useEffect(() => {
     if (isSessionActive && !isActive) {
@@ -71,63 +73,7 @@ export const FacialEmotionAnalyzer = ({
     };
 
     onReportGenerated(report);
-    setEmotionHistory([]);
     setSessionStart(null);
-  };
-
-  const startAnalysis = async () => {
-    setIsLoading(true);
-    try {
-      await tf.ready();
-      const model = await faceLandmarksDetection.createDetector(
-        faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh
-      );
-      setIsActive(true);
-      runFacialAnalysis(model);
-    } catch (error) {
-      console.error('Error loading facial analysis:', error);
-      toast({
-        title: "Error",
-        description: "Failed to start facial analysis. Please try again.",
-        variant: "destructive",
-      });
-    }
-    setIsLoading(false);
-  };
-
-  const runFacialAnalysis = async (model: faceLandmarksDetection.FaceLandmarksDetector) => {
-    const detectFace = async () => {
-      if (webcamRef.current && webcamRef.current.video && isActive) {
-        const video = webcamRef.current.video;
-        const predictions = await model.estimateFaces(video);
-
-        if (predictions.length > 0) {
-          const landmarks = predictions[0].keypoints;
-          const attention = calculateAttention(landmarks);
-          setAttentionScore(attention);
-
-          const { emotion: detectedEmotion, confidence } = detectEmotion(attention);
-          const currentEmotion = {
-            ...emotionDescriptions[detectedEmotion],
-            confidence
-          };
-
-          setEmotion(currentEmotion);
-          setEmotionHistory(prev => [...prev, currentEmotion]);
-        }
-
-        if (isActive) {
-          requestAnimationFrame(() => detectFace());
-        }
-      }
-    };
-
-    detectFace();
-  };
-
-  const stopAnalysis = () => {
-    setIsActive(false);
-    setEmotion(null);
   };
 
   return (
@@ -165,20 +111,7 @@ export const FacialEmotionAnalyzer = ({
           )}
         </div>
 
-        <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden">
-          {isActive && (
-            <Webcam
-              ref={webcamRef}
-              mirrored
-              className="w-full h-full object-cover"
-            />
-          )}
-          {!isActive && (
-            <div className="absolute inset-0 flex items-center justify-center text-gray-500">
-              <Camera className="w-12 h-12" />
-            </div>
-          )}
-        </div>
+        <WebcamView isActive={isActive} webcamRef={webcamRef} />
 
         {emotion && (
           <AttentionIndicator emotion={emotion} attentionScore={attentionScore} />
